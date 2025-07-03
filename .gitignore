@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+
+# Env
+env/
+venv/
+*.env
+
+# OS
+.DS_Store
+.localized
+Thumbs.db
+
+# Logs
+*.log
+
+# Models
+*.pt
+
+# Data
+*.db
+*.sqlite3
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Frontend build artifacts
+build/
+dist/
+
+# Specific to this project
+app.log
+
+

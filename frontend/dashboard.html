@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <title>Dashboard de Sécurité - Surveillance EPI (Optimisé)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.js"></script>
+    <!-- Bootstrap 5 pour la compatibilité avec le code existant -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome pour les icônes via jsdelivr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js optimisé via jsdelivr -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #1abc9c;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --transition-speed: 0.3s;
+        }
+        
+        /* Mode sombre */
+        .dark-mode {
+            --primary: #4d9de0;
+            --primary-dark: #3a7cb2;
+            --light: #2d3748;
+            --dark: #f8f9fa;
+            background-color: #1a202c;
+            color: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            padding-top: 20px;
+            transition: background-color var(--transition-speed);
+            overflow-anchor: none; /* Désactive l'ancrage de défilement automatique */
+            scroll-behavior: smooth;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dashboard-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+            border: none;
+            overflow: hidden;
+        }
+        
+        .dark-mode .card {
+            background-color: #2d3748;
+            color: #f8f9fa;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 15px 20px;
+        }
+        
+        .dark-mode .card-header.bg-primary {
+            background-color: var(--primary) !important;
+        }
+        
+        .status-badge {
+            padding: 8px;
+            border-radius: 5px;
+            font-weight: bold;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            transition: background-color var(--transition-speed), transform var(--transition-speed);
+        }
+        
+        .porté {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .non-porté {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .inconnu {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .dark-mode .porté {
+            background-color: #1e4831;
+            color: #8bcc9e;
+        }
+        
+        .dark-mode .non-porté {
+            background-color: #462026;
+            color: #dc8a94;
+        }
+        
+        .dark-mode .inconnu {
+            background-color: #343a40;
+            color: #adb5bd;
+        }
+        
+        .person-card {
+            transition: all var(--transition-speed);
+            border-left: 5px solid var(--primary);
+        }
+        
+        .person-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .equipment-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+            transition: color var(--transition-speed), transform var(--transition-speed);
+        }
+        
+        .equipment-stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            min-width: 150px;
+            margin: 10px;
+            flex: 1;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+        }
+        
+        .dark-mode .stat-card {
+            background-color: #3a4654;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            transition: color var(--transition-speed);
+        }
+        
+        .compliant-person {
+            border-left-color: var(--success);
+        }
+        
+        .non-compliant-person {
+            border-left-color: var(--danger);
+        }
+        
+        .refresh-btn {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform var(--transition-speed);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .refresh-btn:hover {
+            transform: rotate(180deg);
+            background-color: #f8f9fa;
+        }
+        
+        .theme-toggle {
+            position: absolute;
+            right: 70px;
+            top: 20px;
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform var(--transition-speed), background-color var(--transition-speed);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        .dark-mode .theme-toggle, .dark-mode .refresh-btn {
+            background-color: #4a5568;
+            color: #f8f9fa;
+        }
+        
+        .equipment-icon.helmet { color: var(--warning); }
+        .equipment-icon.vest { color: var(--success); }
+        .equipment-icon.gloves { color: var(--info); }
+        .equipment-icon.boots { color: var(--primary); }
+        .equipment-icon.goggles { color: var(--danger); }
+        
+        /* Conteneur de graphique avec hauteur fixe */
+        .chart-container {
+            position: relative;
+            height: 500px !important;
+            width: 100%;
+            transition: opacity var(--transition-speed);
+        }
+        
+        /* Empêcher les changements de hauteur */
+        .fixed-height-card {
+            height: 500px;
+            overflow: hidden;
+        }
+        
+        /* Maintenir l'aspect ratio des graphiques */
+        .chart-wrapper {
+            position: relative;
+            height: 0;
+            width: 100%;
+            padding-bottom: 60%; /* Aspect ratio 5:3 */
+            transition: opacity var(--transition-speed);
+        }
+        
+        .chart-wrapper canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 100%;
+            width: 100%;
+        }
+        
+        /* Indicateur de chargement */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top-color: var(--primary);
+            animation: spin 1s infinite linear;
+        }
+        
+        .dark-mode .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Notification toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-top: 10px;
+            overflow: hidden;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.5s, opacity 0.5s;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .dark-mode .toast {
+            background-color: #2d3748;
+            color: #f8f9fa;
+        }
+        
+        .toast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .toast-body {
+            padding: 15px;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .equipment-stats {
+                flex-direction: column;
+            }
+            
+            .stat-card {
+                width: 100%;
+                margin: 5px 0;
+            }
+            
+            .fixed-height-card {
+                height: auto;
+                max-height: 400px;
+            }
+            
+            .chart-wrapper {
+                padding-bottom: 80%;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .dashboard-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .equipment-icon {
+                font-size: 1.5rem;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* Amélioration des transitions */
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Navigation par onglets améliorée */
+        .nav-tabs {
+            border-bottom: none;
+            margin-bottom: 20px;
+            gap: 5px;
+        }
+        
+        .nav-tabs .nav-item {
+            margin-bottom: 0;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+            color: #495057;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+        
+        .dark-mode .nav-tabs .nav-link {
+            color: #cbd5e0;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-color: transparent;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+        }
+        
+        /* Tableau amélioré */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        
+        .table th {
+            background-color: rgba(52, 152, 219, 0.1);
+            position: sticky;
+            top: 0;
+            padding: 12px 15px;
+            font-weight: 600;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .dark-mode .table th {
+            background-color: #3a4654;
+            color: #e2e8f0;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .dark-mode .table td {
+            border-bottom-color: #4a5568;
+        }
+        
+        .table tbody tr {
+            transition: background-color var(--transition-speed);
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        .dark-mode .table tbody tr:hover {
+            background-color: #3a4654;
+        }
+        
+        /* Amélioration des boutons */
+        .btn {
+            border-radius: 8px;
+            padding: 8px 16px;
+            transition: all var(--transition-speed);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+        
+        .btn:active::after {
+            animation: ripple 1s ease-out;
+        }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(20, 20);
+                opacity: 0;
+            }
+        }
+        
+        /* Styles des filtres améliorés */
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #e9ecef;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: #495057;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+        
+        .dark-mode .filter-badge {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        .filter-badge:hover {
+            background-color: #dee2e6;
+        }
+        
+        .filter-badge.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        /* Placeholder pour le chargement différé */
+        .placeholder-content {
+            background: #f6f7f8;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dark-mode .placeholder-content {
+            background: #3a4654;
+        }
+        
+        .placeholder-content::before {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-header position-relative">
+            <h1><i class="fas fa-hard-hat me-2"></i> Dashboard de Sécurité EPI</h1>
+            <p class="mb-0">Surveillance en temps réel des équipements de protection individuelle</p>
+            <button class="refresh-btn" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="text-end mt-2">
+                <small id="lastUpdate">Dernière mise à jour: {{ now }}</small>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Statistiques générales -->
+            <div class="col-lg-4 mb-4">
+                <div class="card fixed-height-card">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-chart-pie me-2"></i> Vue d'ensemble
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4 fade-in">
+                            <h4>Personnes détectées</h4>
+                            <div class="stat-number" id="totalPersons">{{ logs|length }}</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-4">
+                            <a href="/" class="btn btn-primary">
+                                <i class="fas fa-camera me-2"></i> Retour à la caméra
+                            </a>
+                            <button class="btn btn-outline-secondary" id="exportBtn">
+                                <i class="fas fa-download me-2"></i> Exporter CSV
+                            </button>
+                        </div>
+                        
+                        <div class="chart-wrapper">
+                            <div class="loading-indicator" id="pieChartLoader">
+                                <div class="spinner"></div>
+                                <p class="mt-2">Chargement...</p>
+                            </div>
+                            <canvas id="equipmentPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Graphique de conformité -->
+            <div class="col-lg-8 mb-4">
+                <div class="card fixed-height-card">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-chart-bar me-2"></i> État de port des EPI
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            <div class="loading-indicator" id="barChartLoader">
+                                <div class="spinner"></div>
+                                <p class="mt-2">Chargement...</p>
+                            </div>
+                            <canvas id="equipmentBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques individuelles par équipement -->
+        <div class="card mb-4 fade-in">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-tools me-2"></i> Statistiques par équipement
+            </div>
+            <div class="card-body">
+                <div class="equipment-stats">
+                    <div class="stat-card">
+                        <i class="fas fa-hard-hat equipment-icon helmet"></i>
+                        <h5>Casques</h5>
+                        <div class="stat-number" id="casquePorte">
+                            {{ equipment_counts["casque"]["porté"] }}
+                        </div>
+                        <div class="text-muted" id="casqueConformite">
+                            {{ (equipment_counts["casque"]["porté"] / (equipment_counts["casque"]["porté"] + equipment_counts["casque"]["non-porté"]) * 100)|round(1) if (equipment_counts["casque"]["porté"] + equipment_counts["casque"]["non-porté"]) > 0 else 0 }}% de conformité
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <i class="fas fa-vest equipment-icon vest"></i>
+                        <h5>Gilets</h5>
+                        <div class="stat-number" id="giletPorte">
+                            {{ equipment_counts["gilet"]["porté"] }}
+                        </div>
+                        <div class="text-muted" id="giletConformite">
+                            {{ (equipment_counts["gilet"]["porté"] / (equipment_counts["gilet"]["porté"] + equipment_counts["gilet"]["non-porté"]) * 100)|round(1) if (equipment_counts["gilet"]["porté"] + equipment_counts["gilet"]["non-porté"]) > 0 else 0 }}% de conformité
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <i class="fas fa-mitten equipment-icon gloves"></i>
+                        <h5>Gants</h5>
+                        <div class="stat-number" id="gantsPorte">
+                            {{ equipment_counts["gants"]["porté"] }}
+                        </div>
+                        <div class="text-muted" id="gantsConformite">
+                            {{ (equipment_counts["gants"]["porté"] / (equipment_counts["gants"]["porté"] + equipment_counts["gants"]["non-porté"]) * 100)|round(1) if (equipment_counts["gants"]["porté"] + equipment_counts["gants"]["non-porté"]) > 0 else 0 }}% de conformité
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <i class="fas fa-boot equipment-icon boots"></i>
+                        <h5>Bottes</h5>
+                        <div class="stat-number" id="bottesPorte">
+                            {{ equipment_counts["bottes"]["porté"] }}
+                        </div>
+                        <div class="text-muted" id="bottesConformite">
+                            {{ (equipment_counts["bottes"]["porté"] / (equipment_counts["bottes"]["porté"] + equipment_counts["bottes"]["non-porté"]) * 100)|round(1) if (equipment_counts["bottes"]["porté"] + equipment_counts["bottes"]["non-porté"]) > 0 else 0 }}% de conformité
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <i class="fas fa-glasses equipment-icon goggles"></i>
+                        <h5>Lunettes</h5>
+                        <div class="stat-number" id="lunettesPorte">
+                            {{ equipment_counts["lunettes"]["porté"] }}
+                        </div>
+                        <div class="text-muted" id="lunettesConformite">
+                            {{ (equipment_counts["lunettes"]["porté"] / (equipment_counts["lunettes"]["porté"] + equipment_counts["lunettes"]["non-porté"]) * 100)|round(1) if (equipment_counts["lunettes"]["porté"] + equipment_counts["lunettes"]["non-porté"]) > 0 else 0 }}% de conformité
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des personnes détectées -->
+        <div class="card mb-4 fade-in">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-users me-2"></i> Personnes détectées
+                </div>
+                <div class="input-group" style="max-width: 300px;">
+                    <input type="text" class="form-control" placeholder="Rechercher une personne" id="searchInput">
+                    <button class="btn btn-light" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="filter-group">
+                    <span class="filter-badge active" data-filter="all">Tous les équipements</span>
+                    <span class="filter-badge" data-filter="casque">Casques</span>
+                    <span class="filter-badge" data-filter="gilet">Gilets</span>
+                    <span class="filter-badge" data-filter="gants">Gants</span>
+                    <span class="filter-badge" data-filter="bottes">Bottes</span>
+                    <span class="filter-badge" data-filter="lunettes">Lunettes</span>
+                </div>
+                
+                <ul class="nav nav-tabs mb-3" id="personTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button">
+                            Toutes les personnes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="compliant-tab" data-bs-toggle="tab" data-bs-target="#compliant" type="button">
+                            Conformes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="non-compliant-tab" data-bs-toggle="tab" data-bs-target="#non-compliant" type="button">
+                            Non conformes
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="personTabContent">
+                    <div class="tab-pane fade show active" id="all" role="tabpanel">
+                        <div class="row" id="allPersons">
+                            {% for log in logs %}
+                            {% set eq = log.get('equipements', {}) %}
+                            {% set is_compliant = eq.get('casque', '') == 'porté' and eq.get('gilet', '') == 'porté' and eq.get('gants', '') == 'porté' and eq.get('bottes', '') == 'porté' and eq.get('lunettes', '') == 'porté' %}
+                            <div class="col-md-12 mb-3 person-item" 
+                                 data-status="{{ 'compliant' if is_compliant else 'non-compliant' }}"
+                                 data-casque="{{ eq.get('casque', 'inconnu') }}"
+                                 data-gilet="{{ eq.get('gilet', 'inconnu') }}"
+                                 data-gants="{{ eq.get('gants', 'inconnu') }}"
+                                 data-bottes="{{ eq.get('bottes', 'inconnu') }}"
+                                 data-lunettes="{{ eq.get('lunettes', 'inconnu') }}">
+                                <div class="card person-card {{ 'compliant-person' if is_compliant else 'non-compliant-person' }}">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <h5 class="card-title">
+                                                    <i class="fas fa-user me-2"></i> {{ log.get('personne', 'Inconnu') }}
+                                                </h5>
+                                                <p class="text-muted">
+                                                    <small><i class="fas fa-clock me-1"></i> {{ log.get('heure', '') }}</small>
+                                                </p>
+                                                <span class="badge {{ 'bg-success' if is_compliant else 'bg-danger' }} mb-2">
+                                                    {{ 'Conforme' if is_compliant else 'Non conforme' }}
+                                                </span>
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="row">
+                                                    <div class="col-md-2 text-center mb-2">
+                                                        <i class="fas fa-hard-hat equipment-icon"></i>
+                                                        <p>Casque</p>
+                                                        <span class="status-badge {{ eq.get('casque', 'inconnu') }}">
+                                                            {{ eq.get('casque', 'inconnu') }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-md-2 text-center mb-2">
+                                                        <i class="fas fa-vest equipment-icon"></i>
+                                                        <p>Gilet</p>
+                                                        <span class="status-badge {{ eq.get('gilet', 'inconnu') }}">
+                                                            {{ eq.get('gilet', 'inconnu') }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-md-2 text-center mb-2">
+                                                        <i class="fas fa-mitten equipment-icon"></i>
+                                                        <p>Gants</p>
+                                                        <span class="status-badge {{ eq.get('gants', 'inconnu') }}">
+                                                            {{ eq.get('gants', 'inconnu') }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-md-2 text-center mb-2">
+                                                        <i class="fas fa-boot equipment-icon"></i>
+                                                        <p>Bottes</p>
+                                                        <span class="status-badge {{ eq.get('bottes', 'inconnu') }}">
+                                                            {{ eq.get('bottes', 'inconnu') }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-md-2 text-center mb-2">
+                                                        <i class="fas fa-glasses equipment-icon"></i>
+                                                        <p>Lunettes</p>
+                                                        <span class="status-badge {{ eq.get('lunettes', 'inconnu') }}">
+                                                            {{ eq.get('lunettes', 'inconnu') }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if logs|length == 0 %}
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle me-2"></i> Aucune personne détectée pour le moment.
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="compliant" role="tabpanel">
+                        <div class="row" id="compliantPersons"></div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="non-compliant" role="tabpanel">
+                        <div class="row" id="nonCompliantPersons"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau récapitulatif -->
+        <div class="card mb-4 fade-in">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-table me-2"></i> Journal des détections
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="detectionsTable">
+                        <thead>
+                            <tr>
+                                <th>Heure</th>
+                                <th>Personne</th>
+                                <th>Casque</th>
+                                <th>Gilet</th>
+                                <th>Gants</th>
+                                <th>Bottes</th>
+                                <th>Lunettes</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            {% set eq = log.get('equipements', {}) %}
+                            {% set is_compliant = eq.get('casque', '') == 'porté' and eq.get('gilet', '') == 'porté' and eq.get('gants', '') == 'porté' and eq.get('bottes', '') == 'porté' and eq.get('lunettes', '') == 'porté' %}
+                            <tr>
+                                <td>{{ log.get('heure', '') }}</td>
+                                <td>{{ log.get('personne', '') }}</td>
+                                <td><span class="status-badge {{ eq.get('casque', 'inconnu') }}">{{ eq.get('casque', 'inconnu') }}</span></td>
+                                <td><span class="status-badge {{ eq.get('gilet', 'inconnu') }}">{{ eq.get('gilet', 'inconnu') }}</span></td>
+                                <td><span class="status-badge {{ eq.get('gants', 'inconnu') }}">{{ eq.get('gants', 'inconnu') }}</span></td>
+                                <td><span class="status-badge {{ eq.get('bottes', 'inconnu') }}">{{ eq.get('bottes', 'inconnu') }}</span></td>
+                                <td><span class="status-badge {{ eq.get('lunettes', 'inconnu') }}">{{ eq.get('lunettes', 'inconnu') }}</span></td>
+                                <td>
+                                    {% if is_compliant %}
+                                    <span class="badge bg-success">Conforme</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Non conforme</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center text-muted mb-4">
+            <p>&copy; 2025 Système de détection d'équipements de protection individuelle</p>
+        </footer>
+    </div>
+
+    <!-- Container pour les notifications -->
+    <div class="toast-container"></div>
+
+    <!-- Bootstrap Bundle avec Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Passage des données du serveur au JavaScript -->
+    <script>
+        // Convertir les données Python en variables JavaScript
+        const equipmentCounts = JSON.parse('{{ equipment_counts|tojson }}');
+        let barChart, pieChart; // Variables globales pour les graphiques
+    </script>
+
+    <script>
+        // Fonction pour basculer entre les modes clair et sombre
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+            
+            const themeToggle = document.querySelector('.theme-toggle i');
+            if (body.classList.contains('dark-mode')) {
+                themeToggle.classList.remove('fa-moon');
+                themeToggle.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+                
+                // Mettre à jour les graphiques pour le mode sombre
+                updateChartsTheme(true);
+                showToast('Mode sombre activé', 'Les couleurs ont été ajustées pour réduire la fatigue oculaire.');
+            } else {
+                themeToggle.classList.remove('fa-sun');
+                themeToggle.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+                
+                // Mettre à jour les graphiques pour le mode clair
+                updateChartsTheme(false);
+                showToast('Mode clair activé', 'Les couleurs standard ont été restaurées.');
+            }
+        }
+        
+        // Mettre à jour les thèmes des graphiques
+        function updateChartsTheme(isDarkMode) {
+            const textColor = isDarkMode ? '#f8f9fa' : '#343a40';
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            
+            if (barChart) {
+                barChart.options.scales.x.ticks.color = textColor;
+                barChart.options.scales.y.ticks.color = textColor;
+                barChart.options.scales.x.grid.color = gridColor;
+                barChart.options.scales.y.grid.color = gridColor;
+                barChart.options.plugins.legend.labels.color = textColor;
+                barChart.update();
+            }
+            
+            if (pieChart) {
+                pieChart.options.plugins.legend.labels.color = textColor;
+                pieChart.update();
+            }
+        }
+        
+        // Fonction pour afficher une notification toast
+        function showToast(title, message) {
+            const toastContainer = document.querySelector('.toast-container');
+            
+            const toast = document.createElement('div');
+            toast.classList.add('toast');
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <strong>${title}</strong>
+                    <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Déclencher l'animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Disparaître après 5 secondes
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 500);
+            }, 5000);
+        }
+        
+        // Fonction pour rafraîchir le dashboard
+        function refreshDashboard() {
+            const refreshBtn = document.querySelector('.refresh-btn i');
+            refreshBtn.classList.add('fa-spin');
+            
+            // Simuler un chargement des données (remplacer par une vraie requête AJAX)
+            setTimeout(() => {
+                refreshBtn.classList.remove('fa-spin');
+                document.getElementById('lastUpdate').textContent = 'Dernière mise à jour: ' + new Date().toLocaleTimeString();
+                showToast('Dashboard actualisé', 'Les données ont été mises à jour avec succès.');
+                
+                // Réinitialiser la position de défilement
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }, 1000);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Vérifier et appliquer le thème enregistré
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.querySelector('.theme-toggle i').classList.remove('fa-moon');
+                document.querySelector('.theme-toggle i').classList.add('fa-sun');
+            }
+            
+            // Empêcher le défilement automatique
+            window.scrollTo(0, 0);
+            
+            // Précharger les dimensions des graphiques
+            document.querySelectorAll('canvas').forEach(canvas => {
+                canvas.style.height = '250px';
+                canvas.height = 250;
+            });
+            
+            // Lazy-loading des graphiques
+            const loadCharts = () => {
+                setTimeout(() => {
+                    createPieChart();
+                    document.getElementById('pieChartLoader').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        createBarChart();
+                        document.getElementById('barChartLoader').style.display = 'none';
+                        
+                        // Mettre à jour les thèmes des graphiques si nécessaire
+                        if (document.body.classList.contains('dark-mode')) {
+                            updateChartsTheme(true);
+                        }
+                    }, 200);
+                }, 200);
+            };
+            
+            // Observer l'intersection pour le chargement différé
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        loadCharts();
+                        observer.disconnect();
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            observer.observe(document.querySelector('.chart-wrapper'));
+            
+            // Filtrage des personnes
+            const fillTabs = () => {
+                const compliantTab = document.getElementById('compliantPersons');
+                const nonCompliantTab = document.getElementById('nonCompliantPersons');
+                
+                compliantTab.innerHTML = '';
+                nonCompliantTab.innerHTML = '';
+                
+                document.querySelectorAll('#allPersons .person-item').forEach(item => {
+                    const status = item.getAttribute('data-status');
+                    const clone = item.cloneNode(true);
+                    
+                    if (status === 'compliant') {
+                        compliantTab.appendChild(clone);
+                    } else {
+                        nonCompliantTab.appendChild(clone);
+                    }
+                });
+            };
+            
+            // Recherche de personnes avancée
+            document.getElementById('searchInput').addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase();
+                
+                document.querySelectorAll('#allPersons .person-item').forEach(item => {
+                    const personName = item.querySelector('.card-title').textContent.toLowerCase();
+                    
+                    if (personName.includes(searchText)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                
+                // Mettre à jour les autres onglets aussi
+                fillTabs();
+            });
+            
+            // Gestion des filtres d'équipement
+            document.querySelectorAll('.filter-badge').forEach(badge => {
+                badge.addEventListener('click', function() {
+                    const filter = this.getAttribute('data-filter');
+                    
+                    // Mise à jour visuelle des filtres
+                    document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Appliquer le filtre
+                    if (filter === 'all') {
+                        document.querySelectorAll('.person-item').forEach(item => {
+                            item.style.display = '';
+                        });
+                    } else {
+                        document.querySelectorAll('.person-item').forEach(item => {
+                            const status = item.getAttribute(`data-${filter}`);
+                            if (status === 'porté') {
+                                item.style.display = '';
+                            } else {
+                                item.style.display = 'none';
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Export CSV avec format amélioré
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                const rows = [
+                    ['Heure', 'Personne', 'Casque', 'Gilet', 'Gants', 'Bottes', 'Lunettes', 'Statut']
+                ];
+                
+                document.querySelectorAll('#detectionsTable tbody tr').forEach(row => {
+                    const rowData = [];
+                    row.querySelectorAll('td').forEach(cell => {
+                        rowData.push(cell.textContent.trim());
+                    });
+                    rows.push(rowData);
+                });
+                
+                const csvContent = "data:text/csv;charset=utf-8," + 
+                    rows.map(e => e.join(',')).join('\n');
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                
+                // Nom de fichier avec date
+                const now = new Date();
+                const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                link.setAttribute('download', `detections_epi_${formattedDate}.csv`);
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('Export réussi', 'Les données ont été exportées avec succès au format CSV.');
+            });
+            
+            // Initialisation des graphiques avec performances optimisées
+            function createPieChart() {
+                const ctx = document.getElementById('equipmentPieChart').getContext('2d');
+                
+                const equipments = ['casque', 'gilet', 'gants', 'bottes', 'lunettes'];
+                const portéData = equipments.map(eq => equipmentCounts[eq]['porté']);
+                const nonPortéData = equipments.map(eq => equipmentCounts[eq]['non-porté']);
+                
+                const totalPorté = portéData.reduce((a, b) => a + b, 0);
+                const totalNonPorté = nonPortéData.reduce((a, b) => a + b, 0);
+                
+                pieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Équipements portés', 'Équipements non portés'],
+                        datasets: [{
+                            data: [totalPorté, totalNonPorté],
+                            backgroundColor: ['#2ecc71', '#e74c3c'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 800,
+                            easing: 'easeOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.raw;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function createBarChart() {
+                const ctx = document.getElementById('equipmentBarChart').getContext('2d');
+                
+                const equipments = ['casque', 'gilet', 'gants', 'bottes', 'lunettes'];
+                const equipmentLabels = ['Casque', 'Gilet', 'Gants', 'Bottes', 'Lunettes'];
+                const portéData = equipments.map(eq => equipmentCounts[eq]['porté']);
+                const nonPortéData = equipments.map(eq => equipmentCounts[eq]['non-porté']);
+                
+                barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: equipmentLabels,
+                        datasets: [
+                            {
+                                label: 'Porté',
+                                data: portéData,
+                                backgroundColor: '#2ecc71',
+                                borderWidth: 0,
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Non porté',
+                                data: nonPortéData,
+                                backgroundColor: '#e74c3c',
+                                borderWidth: 0,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 800,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const datasetLabel = context.dataset.label;
+                                        const value = context.raw;
+                                        const total = portéData[context.dataIndex] + nonPortéData[context.dataIndex];
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return `${datasetLabel}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Mise à jour automatique toutes les 30 secondes avec notification
+            const setupAutoRefresh = () => {
+                setInterval(() => {
+                    refreshDashboard();
+                }, 60000); // 60 secondes
+            };
+            
+            // Fonction pour mettre en évidence les équipements manquants
+            const highlightMissingEquipment = () => {
+                document.querySelectorAll('.status-badge.non-porté').forEach(badge => {
+                    badge.classList.add('pulse-animation');
+                });
+            };
+            
+            // Désactiver le défilement automatique lors du chargement des graphiques
+            function preventScrolling() {
+                const originalScrollPosition = window.scrollY || window.pageYOffset;
+                
+                // Rétablir la position de défilement originale
+                window.scrollTo({
+                    top: originalScrollPosition,
+                    behavior: 'auto'
+                });
+            }
+            
+            // Observer le chargement des images et des ressources
+            window.addEventListener('load', function() {
+                preventScrolling();
+                fillTabs();
+                highlightMissingEquipment();
+                setupAutoRefresh();
+                
+                // Afficher une notification de bienvenue
+                setTimeout(() => {
+                    showToast('Dashboard prêt', 'Bienvenue dans le tableau de bord de surveillance EPI.');
+                }, 1000);
+            });
+            
+            // Activation des onglets avec transition fluide
+            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tabEl => {
+                tabEl.addEventListener('click', event => {
+                    event.preventDefault();
+                    const target = document.querySelector(event.target.getAttribute('data-bs-target'));
+                    
+                    document.querySelectorAll('.nav-link').forEach(navLink => {
+                        navLink.classList.remove('active');
+                    });
+                    
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.remove('show', 'active');
+                    });
+                    
+                    event.target.classList.add('active');
+                    
+                    // Animation de transition
+                    target.style.opacity = 0;
+                    target.classList.add('show', 'active');
+                    
+                    setTimeout(() => {
+                        target.style.transition = 'opacity 0.3s ease';
+                        target.style.opacity = 1;
+                    }, 50);
+                });
+            });
+            
+            // Désactiver le comportement de défilement par défaut
+            window.addEventListener('scroll', function() {
+                if (window.scrollY === 0) {
+                    return;
+                }
+                
+                if (document.querySelector('.chart-wrapper').getBoundingClientRect().bottom > 0) {
+                    preventScrolling();
+                }
+            }, { passive: true });
+        });
+    </script>
+</body>
+</html>

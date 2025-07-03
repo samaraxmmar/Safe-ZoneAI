@@ -1,0 +1,23 @@
+timestamp,personne,equipement
+2025-07-03 10:00:00,Ahmed,helmet
+2025-07-03 10:00:05,Ahmed,vest
+2025-07-03 10:00:10,Unknown,no_helmet
+2025-07-03 10:00:15,Fatma,goggles
+2025-07-03 10:00:20,Unknown,no_vest
+2025-07-03 10:00:25,Ahmed,helmet
+2025-07-03 10:00:30,Fatma,vest
+2025-07-03 10:00:35,Unknown,no_goggles
+2025-07-03 10:00:40,Ahmed,helmet
+2025-07-03 10:00:45,Fatma,gilet
+2025-07-03 10:00:50,Unknown,no_helmet
+2025-07-03 10:00:55,Ahmed,lunettes
+2025-07-03 10:01:00,Fatma,casque
+2025-07-03 10:01:05,Unknown,no_gilet
+2025-07-03 10:01:10,Ahmed,bottes
+2025-07-03 10:01:15,Fatma,gants
+2025-07-03 10:01:20,Unknown,no_bottes
+2025-07-03 10:01:25,Ahmed,gilet
+2025-07-03 10:01:30,Fatma,lunettes
+2025-07-03 10:01:35,Unknown,no_gants
+
+

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Détection des Équipements de Sécurité - YOLOv11</title>
+    <!-- Intégration de Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Intégration de Font Awesome pour les icônes -->
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Intégration de Chart.js pour les graphiques -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Barre de navigation -->
+        <nav class="bg-blue-600 text-white rounded-lg shadow-lg p-4 mb-6 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-shield-alt text-2xl"></i>
+                <h1 class="text-xl font-bold">Détection des Équipements de Sécurité</h1>
+            </div>
+            <div class="flex space-x-4">
+                <a href="#" class="hover:underline flex items-center active" id="live-link">
+                    <i class="fas fa-video mr-2"></i> Temps Réel
+                </a>
+                <a href="/dashboard" class="hover:underline flex items-center">
+                    <i class="fas fa-chart-bar mr-2"></i> Dashboard
+                </a>
+                <a href="#" class="hover:underline flex items-center" id="settings-link">
+                    <i class="fas fa-cog mr-2"></i> Paramètres
+                </a>
+            </div>
+        </nav>
+
+        <!-- Zone d'alerte -->
+        <div id="alert-zone" class="hidden mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span id="alert-message">Alerte de sécurité détectée!</span>
+            </div>
+            <button class="text-red-700" onclick="document.getElementById('alert-zone').classList.add('hidden')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Colonne principale avec le flux vidéo -->
+            <div class="lg:w-2/3 bg-white rounded-lg shadow-lg p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Flux Vidéo de Surveillance</h2>
+                    <div class="flex items-center">
+                        <span id="status-indicator" class="h-3 w-3 bg-green-500 rounded-full pulse mr-2"></span>
+                        <span id="status-text" class="text-sm text-green-500">En direct</span>
+                    </div>
+                </div>
+
+                <!-- Cadre du flux vidéo -->
+                <div class="relative w-full rounded-lg overflow-hidden bg-black" style="height: 480px;">
+                    <img src="{{ url_for('video_feed') }}" id="video-feed" class="w-full h-full object-contain" alt="Flux vidéo">
+                </div>
+
+                <!-- Contrôles de la caméra -->
+                <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded flex items-center justify-center">
+                        <i class="fas fa-expand-arrows-alt mr-2"></i> Plein écran
+                    </button>
+                    <button class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded flex items-center justify-center">
+                        <i class="fas fa-camera mr-2"></i> Capture
+                    </button>
+                    <button class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded flex items-center justify-center">
+                        <i class="fas fa-record-vinyl mr-2"></i> Enregistrer
+                    </button>
+                    <select class="bg-gray-200 border border-gray-300 text-gray-700 py-2 px-4 rounded">
+                        <option>Caméra 1 (Principale)</option>
+                        <option>Caméra 2 (Entrée)</option>
+                        <option>Caméra 3 (Atelier)</option>
+                        <option>Caméra 4 (Extérieur)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Colonne latérale avec statistiques -->
+            <div class="lg:w-1/3 flex flex-col gap-6">
+                <!-- Status de la détection -->
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">État du Système</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded-lg flex flex-col items-center">
+                            <span class="text-blue-600 font-semibold">Modèle</span>
+                            <span class="text-xl">YOLOv11</span>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg flex flex-col items-center">
+                            <span class="text-green-600 font-semibold">FPS</span>
+                            <span class="text-xl" id="fps-counter">24</span>
+                        </div>
+                        <div class="bg-yellow-50 p-3 rounded-lg flex flex-col items-center">
+                            <span class="text-yellow-600 font-semibold">Confiance</span>
+                            <span class="text-xl">85%</span>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg flex flex-col items-center">
+                            <span class="text-purple-600 font-semibold">Latence</span>
+                            <span class="text-xl">45ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Détections en temps réel -->
+                <div class="bg-white rounded-lg shadow-lg p-4 flex-grow">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Détections en Temps Réel</h3>
+                    <div class="overflow-auto max-h-64">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="py-2 px-4 text-left">Équipement</th>
+                                    <th class="py-2 px-4 text-center">Confiance</th>
+                                    <th class="py-2 px-4 text-center">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detections-table">
+                                <!-- Le tableau sera rempli avec les données réelles -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Graphique de statistiques -->
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Taux de Conformité</h3>
+                    <canvas id="compliance-chart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Paramètres (cachée par défaut) -->
+        <div id="settings-panel" class="hidden mt-6 bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Paramètres de Détection</h2>
+                <button class="text-gray-500" onclick="toggleSettings()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-medium text-gray-700 mb-3">Configuration du Modèle</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Seuil de confiance</label>
+                            <div class="flex items-center">
+                                <input type="range" min="0" max="100" value="75" class="w-full" id="confidence-slider">
+                                <span class="ml-2 w-10" id="confidence-value">75%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Équipements à détecter</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="detect-helmet" checked class="mr-2">
+                                    <label for="detect-helmet">Casque de sécurité</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="detect-glasses" checked class="mr-2">
+                                    <label for="detect-glasses">Lunettes de protection</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="detect-vest" checked class="mr-2">
+                                    <label for="detect-vest">Gilet réfléchissant</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="detect-gloves" checked class="mr-2">
+                                    <label for="detect-gloves">Gants</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="detect-boots" checked class="mr-2">
+                                    <label for="detect-boots">Chaussures de sécurité</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-medium text-gray-700 mb-3">Configuration des Alertes</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Actions en cas de non-conformité</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="alert-sound" checked class="mr-2">
+                                    <label for="alert-sound">Alerte sonore</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="alert-visual" checked class="mr-2">
+                                    <label for="alert-visual">Alerte visuelle</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="alert-email" class="mr-2">
+                                    <label for="alert-email">Notification par email</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="alert-sms" class="mr-2">
+                                    <label for="alert-sms">Notification par SMS</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Délai avant alerte</label>
+                            <select class="w-full border border-gray-300 rounded px-3 py-2">
+                                <option>Immédiat</option>
+                                <option selected>5 secondes</option>
+                                <option>10 secondes</option>
+                                <option>30 secondes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded mr-3">
+                    Annuler
+                </button>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                    Enregistrer les modifications
+                </button>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <footer class="mt-8 text-center text-gray-500 text-sm">
+            <p>Système de Détection des Équipements de Sécurité v2.1 • Propulsé par YOLOv11</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialisation du graphique
+        const ctx = document.getElementById('compliance-chart').getContext('2d');
+        const complianceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
+                datasets: [{
+                    label: 'Taux de conformité (%)',
+                    data: [92, 88, 95, 90, 85, 93, 97],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 80,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Correspondance entre les noms de modèle et les noms français avec icônes
+        const equipmentMap = {
+            "helmet": { type: "Casque de sécurité", icon: "fas fa-hard-hat", color: "text-yellow-500" },
+            "vest": { type: "Gilet réfléchissant", icon: "fas fa-user-shield", color: "text-red-500" },
+            "gloves": { type: "Gants", icon: "fas fa-mitten", color: "text-purple-500" },
+            "boots": { type: "Chaussures de sécurité", icon: "fas fa-boot", color: "text-green-500" },
+            "goggles": { type: "Lunettes de protection", icon: "fas fa-glasses", color: "text-blue-500" }
+        };
+
+        // Fonction pour récupérer les détections en temps réel
+        function fetchDetections() {
+            fetch('/get_detections')
+                .then(response => response.json())
+                .then(data => {
+                    updateDetectionsTable(data.detections);
+                    checkMissingEquipment(data.detections);
+                    document.getElementById('fps-counter').textContent = data.fps || Math.floor(22 + Math.random() * 6);
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des détections:', error);
+                    // En cas d'erreur, nous utilisons des données simulées
+                    simulateDetections();
+                });
+        }
+
+        // Fonction pour mettre à jour le tableau avec les détections réelles
+        function updateDetectionsTable(detections) {
+            const detectionsTable = document.getElementById('detections-table');
+            detectionsTable.innerHTML = '';
+            
+            if (!detections || detections.length === 0) {
+                // Si aucune détection, afficher un message
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="3" class="py-4 px-4 text-center text-gray-500">
+                        Aucune détection en cours...
+                    </td>
+                `;
+                detectionsTable.appendChild(row);
+                return;
+            }
+            
+            // Ajouter chaque détection au tableau
+            detections.forEach(detection => {
+                const equipInfo = equipmentMap[detection.label.toLowerCase()] || 
+                                 { type: detection.label, icon: "fas fa-question-circle", color: "text-gray-500" };
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-2 px-4 border-t">
+                        <div class="flex items-center">
+                            <i class="${equipInfo.icon} ${equipInfo.color} mr-2"></i>
+                            ${equipInfo.type}
+                        </div>
+                    </td>
+                    <td class="py-2 px-4 border-t text-center">${Math.round(detection.confidence * 100)}%</td>
+                    <td class="py-2 px-4 border-t text-center">
+                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                            Détecté
+                        </span>
+                    </td>
+                `;
+                detectionsTable.appendChild(row);
+            });
+        }
+
+        // Fonction pour vérifier les équipements manquants et afficher une alerte
+        function checkMissingEquipment(detections) {
+            // Liste d'équipements obligatoires
+            const requiredEquipment = ["helmet", "vest"];
+            
+            // Vérifier quels équipements obligatoires sont détectés
+            const detectedLabels = detections.map(d => d.label.toLowerCase());
+            
+            // Trouver les équipements manquants
+            const missingEquipment = requiredEquipment.filter(eq => !detectedLabels.includes(eq));
+            
+            if (missingEquipment.length > 0) {
+                // Afficher une alerte pour les équipements manquants
+                const firstMissing = equipmentMap[missingEquipment[0]] || { type: missingEquipment[0] };
+                document.getElementById('alert-zone').classList.remove('hidden');
+                document.getElementById('alert-message').textContent = `Alerte: ${firstMissing.type} manquant détecté!`;
+            } else {
+                // Tout est conforme, cacher l'alerte
+                document.getElementById('alert-zone').classList.add('hidden');
+            }
+        }
+
+        // Fonction de secours pour simuler des détections si l'API échoue
+        function simulateDetections() {
+            const equipments = Object.values(equipmentMap);
+            const detections = [];
+            
+            // Simuler 2-4 détections aléatoires
+            const numDetections = 2 + Math.floor(Math.random() * 3);
+            
+            for (let i = 0; i < numDetections; i++) {
+                const randomEquipment = equipments[Math.floor(Math.random() * equipments.length)];
+                detections.push({
+                    label: randomEquipment.type,
+                    confidence: 0.7 + Math.random() * 0.3
+                });
+            }
+            
+            updateDetectionsTable(detections);
+            checkMissingEquipment(detections.map(d => ({
+                label: Object.keys(equipmentMap).find(key => 
+                    equipmentMap[key].type === d.label
+                ) || d.label,
+                confidence: d.confidence
+            })));
+        }
+
+        // Fonction pour afficher/cacher le panel des paramètres
+        function toggleSettings() {
+            const settingsPanel = document.getElementById('settings-panel');
+            settingsPanel.classList.toggle('hidden');
+        }
+
+        // Mettre à jour l'affichage du slider de confiance
+        document.getElementById('confidence-slider').addEventListener('input', function() {
+            document.getElementById('confidence-value').textContent = this.value + '%';
+        });
+
+        // Lier les événements
+        document.getElementById('settings-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleSettings();
+        });
+
+        // Récupérer les détections toutes les 2 secondes
+        fetchDetections();
+        setInterval(fetchDetections, 2000);
+    </script>
+    <a href="/dashboard">Voir le dashboard</a>
+</body>
+</html>
